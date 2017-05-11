@@ -44,7 +44,7 @@ var ExecCommand = "/make"
 // main
 func main() {
 	var uri, prjID, rPath, logLevel string
-	var withTimestamp bool
+	var withTimestamp, listProject bool
 
 	// Create a new App instance
 	app := cli.NewApp()
@@ -65,6 +65,11 @@ func main() {
 			Hidden:      true,
 			Usage:       "project ID you want to build",
 			Destination: &prjID,
+		},
+		cli.BoolFlag{
+			Name:        "list",
+			Usage:       "list existing projects",
+			Destination: &listProject,
 		},
 		cli.StringFlag{
 			Name:        "log",
@@ -122,7 +127,7 @@ func main() {
 			switch a {
 			// Allow to print help and version of this utility and
 			// not help or version of sub-process
-			case "-h", "--help", "-v", "--version":
+			case "-h", "--help", "-v", "--version", "--list":
 				args[1] = a
 				found = true
 				goto exit_loop
@@ -188,15 +193,20 @@ func main() {
 		errMar := json.Unmarshal(data, &folders)
 
 		// Check mandatory args
-		if prjID == "" {
-			errMsg := "XDS_PROJECT_ID environment variable must be set !\n"
+		if prjID == "" || listProject {
+			msg := ""
+			exc := 0
+			if !listProject {
+				msg = "XDS_PROJECT_ID environment variable must be set !\n"
+				exc = 1
+			}
 			if errMar == nil {
-				errMsg += "\nList of existing projects: \n"
+				msg += "\nList of existing projects: \n"
 				for _, f := range folders {
-					errMsg += fmt.Sprintf("  %s\n", f.ID)
+					msg += fmt.Sprintf("  %s\n", f.ID)
 				}
 			}
-			return cli.NewExitError(errMsg, 1)
+			return cli.NewExitError(msg, exc)
 		}
 
 		// Create io Websocket client
