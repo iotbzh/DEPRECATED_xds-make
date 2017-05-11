@@ -1,5 +1,5 @@
 package: github.com/iotbzh/xds-make
-license: Apache-2
+license: Apache-2.0
 owners:
 - name: Sebastien Douheret
   email: sebastien@iot.bzh
