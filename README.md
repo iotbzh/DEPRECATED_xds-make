@@ -1,60 +1,94 @@
 xds-make: wrapper on make for XDS
 =================================
 
-xds-make is a wrapper on make for Cross Development System.
+xds-make is a wrapper on make for X(cross) Development System.
+
+This tool can be used in lieu of "standard" `make` command to trigger build of
+your application by a remote XDS-server.
+xds-make uses [Syncthing](https://syncthing.net/) tool to synchronize your
+projects files from your machine to the XDS build server machine or container.
+
+> **NOTE**: For now, only Syncthing sharing method is supported to synchronize
+projects files.
+
+> **SEE ALSO**: [xds-server](https://github.com/iotbzh/xds-server), a web server
+used to remotely cross build applications.
+
 
 ## How to build
 
 ### Prerequisites
- You must install and setup [go](https://golang.org/doc/install) version 1.7 or
+ You must install and setup [Go](https://golang.org/doc/install) version 1.7 or
  higher to compile this tool.
 
-### Build procedure
-Just use delivered Makefile
+### Building
+Clone this repo into your `$GOPATH/src/github.com/iotbzh` and use delivered Makefile:
 ```bash
-make build
+ mkdir -p $GOPATH/src/github.com/iotbzh
+ cd $GOPATH/src/github.com/iotbzh
+ git clone https://github.com/iotbzh/xds-make.git
+ cd xds-make
+ make all
 ```
 
-## Usage
-You must create first your XDS project using XDS dashboard.
-Then you must specify the project ID using `XDS_PROJECT_ID` environment variable,
-and finally you must specify the XDS server url using `XDS_SERVER_URL`.
+## How to use xds-make
 
-For example to call the `clean` rule of your project:
+You must have a running XDS-server (locally or on the Cloud), see [README.txt of xds-server](https://github.com/iotbzh/xds-server/blob/master/README.md) for more details.
+
+Then connect your favorite Web browser to the XDS dashboard (default url
+http://localhost:8000) and follow instructions to start local source file
+synchronizer (eg. Syncthing) and then create your project.
+
+`XDS_PROJECT_ID` environment variable should be used to specify which project
+you want to build.
+Used `--list` option to list all existing projects ID:
+```bash
+./bin/xds-make --list
+
+List of existing projects:
+  CKI7R47-UWNDQC3_myProject
+  CKI7R47-UWNDQC3_test2
+  CKI7R47-UWNDQC3_test3
+```
+
+You are now ready to cross build your project. For example:
 ```bash
  export XDS_PROJECT_ID=CKI7R47-UWNDQC3_myProject
  export XDS_SERVER_URL=http://localhost:8000
- cd <local_path_of_my_project>
- xds-make clean
+ export XDS_RPATH=<<local_path_of_my_project>>
+ ./bin/xds-make clean
+ ./bin/xds-make -j all
 ```
 
 You can also add the directory where you build this tool into your `PATH` and
-use the symbolic link named `make` to overwrite your native `make`.
+use the symbolic link `./bin/make -> ./bin/xds-make` to overwrite the native
+`make` command.
 
 ```bash
+export PATH=<<directory_of_xds_make_repo>>/bin:$PATH
+
 export XDS_PROJECT_ID=CKI7R47-UWNDQC3_myProject
 export XDS_SERVER_URL=http://localhost:8000
-export PATH=<directory_bin_xds-make>:$PATH
-cd <local_path_of_my_project>
+cd <<local_path_of_my_project>>
 make clean
 ```
 
-## Help
+## Usage
 
 ```bash
-> xds-make help
+./bin/xds-make --help
 
 NAME:
-   xds-make - Usage: wrapper on make for Cross Development System.
+   xds-make - wrapper on make for X(cross) Development System.
 
 USAGE:
    xds-make [global options] command [command options] [arguments...]
 
 VERSION:
-   0.0.1 (812a4c3)
+   1.0.0 (4e22f6f)
 
 DESCRIPTION:
-   make utility of Cross Development System
+   make utility of X(cross) Development System
 
 ENVIRONMENT VARIABLES:
  XDS_PROJECT_ID      project ID you want to build (mandatory variable)
@@ -70,11 +104,12 @@ COMMANDS:
      help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
+   --list         list existing projects
    --help, -h     show help
    --version, -v  print the version
 
 COPYRIGHT:
-   Apache 2
+   Apache-2.0
 ```
 
 ## Debug
