@@ -1,12 +1,12 @@
 xds-make: wrapper on make for XDS
 =================================
 
-xds-make is a wrapper on make for X(cross) Development System.
+xds-make is a wrapper on make command for X(cross) Development System.
 
 This tool can be used in lieu of "standard" `make` command to trigger build of
-your application by a remote XDS-server.
-xds-make uses [Syncthing](https://syncthing.net/) tool to synchronize your
-projects files from your machine to the XDS build server machine or container.
+your application by a remote `xds-server`.
+`xds-make` uses [Syncthing](https://syncthing.net/) tool to synchronize your
+projects files from your machine to the XDS build server machine (or container).
 
 > **NOTE**: For now, only Syncthing sharing method is supported to synchronize
 projects files.
@@ -33,7 +33,9 @@ Clone this repo into your `$GOPATH/src/github.com/iotbzh` and use delivered Make
 
 ## How to use xds-make
 
-You must have a running XDS-server (locally or on the Cloud), see [README.txt of xds-server](https://github.com/iotbzh/xds-server/blob/master/README.md) for more details.
+You must have a running `xds-server` (locally or on the Cloud), see
+[README.txt of xds-server](https://github.com/iotbzh/xds-server/blob/master/README.md)
+for more details.
 
 Then connect your favorite Web browser to the XDS dashboard (default url
 http://localhost:8000) and follow instructions to start local source file
@@ -53,15 +55,15 @@ List of existing projects:
 
 You are now ready to cross build your project. For example:
 ```bash
- export XDS_PROJECT_ID=CKI7R47-UWNDQC3_myProject
- export XDS_SERVER_URL=http://localhost:8000
- export XDS_RPATH=<<local_path_of_my_project>>
- ./bin/xds-make clean
- ./bin/xds-make -j all
+export XDS_PROJECT_ID=CKI7R47-UWNDQC3_myProject
+export XDS_SERVER_URL=http://localhost:8000
+export XDS_RPATH=<<local_path_of_my_project>>
+./bin/xds-make clean
+./bin/xds-make -j all
 ```
 
-You can also add the directory where you build this tool into your `PATH` and
-use the symbolic link `./bin/make -> ./bin/xds-make` to overwrite the native
+You can also add the build directory of `xds-make` to your `PATH` in order to
+use the symbolic link `./bin/make -> ./bin/xds-make` and overwrite the native
 `make` command.
 
 ```bash
@@ -71,6 +73,7 @@ export XDS_PROJECT_ID=CKI7R47-UWNDQC3_myProject
 export XDS_SERVER_URL=http://localhost:8000
 cd <<local_path_of_my_project>>
 make clean
+make all
 ```
 
 ## Usage
@@ -114,12 +117,12 @@ COPYRIGHT:
 
 ## Debug
 
-VSCode launcher settings can be found into `.vscode/launch.json`
+Visual Studio Code launcher settings can be found into `.vscode/launch.json`.
 
-_Tricks:_ To develop both client command tool (xds-make) and server part
-(xds-server), it may be useful use the same local sources.
-So you should replace xds-server directory in vendor by a symlink.
-So clone first `xds_server` next to `xds-make` directory.
+>**Tricks:** To debug both `xds-make` (client part) and `xds-server` (server part),
+it may be useful use the same local sources.
+So you should replace `xds-server` in `vendor` directory by a symlink.
+So clone first `xds-server` sources next to `xds-make` directory.
 You should have the following tree:
 ```
 > tree -L 3 src
@@ -129,7 +132,9 @@ src
        |-- xds-make
        |-- xds-server
 ```
-Then you use `vendor/debug` rule to create a symlink inside vendor directory
+Then invoke `vendor/debug` Makefile rule to create a symlink inside vendor
+directory :
 ```bash
+cd src/github.com/iotbzh/xds-make
 make vendor/debug
 ```
