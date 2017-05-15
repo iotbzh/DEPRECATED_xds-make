@@ -1,10 +1,14 @@
 # Makefile used to build XDS make command
 
+# Application Version
+VERSION := 1.0.0
+
+
 # Retrieve git tag/commit to set sub-version string
-ifeq ($(origin VERSION), undefined)
-	VERSION := $(shell git describe --tags --always | sed 's/^v//')
-	ifeq ($(VERSION), )
-		VERSION=unknown-dev
+ifeq ($(origin SUB_VERSION), undefined)
+	SUB_VERSION := $(shell git describe --tags --always | sed 's/^v//')
+	ifeq ($(SUB_VERSION), )
+		SUB_VERSION=unknown-dev
 	endif
 endif
 
@@ -28,8 +32,8 @@ TARGET_NATIVE := $(subst xds-,,$(TARGET))
 all: build
 
 build: vendor
-	@echo "### Build $(TARGET) (version $(VERSION))";
-	@cd $(ROOT_SRCDIR); $(BUILD_ENV_FLAGS) go build $(VERBOSE_$(V)) -i -o bin/$(TARGET) -ldflags "-X main.AppVersionGitTag=$(VERSION)" .
+	@echo "### Build $(TARGET) (version $(VERSION), subversion $(SUB_VERSION))";
+	@cd $(ROOT_SRCDIR); $(BUILD_ENV_FLAGS) go build $(VERBOSE_$(V)) -i -o bin/$(TARGET) -ldflags "-X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" .
 	@(cd bin && ln -sf $(TARGET) $(TARGET_NATIVE))
 
 test: tools/glide
@@ -47,12 +51,9 @@ clean:
 distclean: clean
 	rm -rf bin tools glide.lock vendor
 
-run3:
-	goreman start
-
 # FIXME - package webapp
 release: releasetar
-	goxc -d ./release -tasks-=go-vet,go-test -os="linux darwin" -pv=$(VERSION)  -arch="386 amd64 arm arm64" -build-ldflags="-X main.AppVersionGitTag=$(VERSION)" -resources-include="README.md,Documentation,LICENSE,contrib" -main-dirs-exclude="vendor"
+	goxc -d ./release -tasks-=go-vet,go-test -os="linux darwin" -pv=$(VERSION)  -arch="386 amd64 arm arm64" -build -ldflags "-X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" -resources-include="README.md,Documentation,LICENSE,contrib" -main-dirs-exclude="vendor"
 
 releasetar:
 	mkdir -p release/$(VERSION)

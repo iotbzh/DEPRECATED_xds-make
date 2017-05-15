@@ -21,7 +21,6 @@ import (
 const (
 	appName         = "xds-make"
 	appDescription  = "make utility of X(cross) Development System\n"
-	appVersion      = "1.0.0"
 	appCopyright    = "Apache-2.0"
 	appUsage        = "wrapper on make for X(cross) Development System."
 	defaultLogLevel = "error"
@@ -31,9 +30,12 @@ var appAuthors = []cli.Author{
 	cli.Author{Name: "Sebastien Douheret", Email: "sebastien@iot.bzh"},
 }
 
-// AppVersionGitTag is the git tag id added to version string
-// Should be set by compilation -ldflags "-X main.AppVersionGitTag=xxx"
-var AppVersionGitTag = "unknown-dev"
+// AppVersion is the version of this application
+var AppVersion = "?.?.?"
+
+// AppSubVersion is the git tag id added to version string
+// Should be set by compilation -ldflags "-X main.AppSubVersion=xxx"
+var AppSubVersion = "unknown-dev"
 
 // Create logger
 var log = logrus.New()
@@ -50,12 +52,12 @@ func main() {
 	app := cli.NewApp()
 	app.Name = appName
 	app.Usage = appUsage
-	app.Version = appVersion + " (" + AppVersionGitTag + ")"
+	app.Version = AppVersion + " (" + AppSubVersion + ")"
 	app.Authors = appAuthors
 	app.Copyright = appCopyright
 	app.Metadata = make(map[string]interface{})
-	app.Metadata["version"] = appVersion
-	app.Metadata["git-tag"] = AppVersionGitTag
+	app.Metadata["version"] = AppVersion
+	app.Metadata["git-tag"] = AppSubVersion
 	app.Metadata["logger"] = log
 
 	app.Flags = []cli.Flag{
