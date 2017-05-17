@@ -164,7 +164,7 @@ func main() {
 
 		cmdArgs := strings.Trim(strings.Join(argsCommand, " "), " ")
 
-		log.Debugf("Execute: %s %v", ExecCommand, cmdArgs)
+		log.Infof("Execute: %s %v", ExecCommand, cmdArgs)
 
 		// Define HTTP and WS url
 		baseURL := uri
@@ -189,7 +189,7 @@ func main() {
 		if err := c.HTTPGet("/folders", &data); err != nil {
 			return cli.NewExitError(err.Error(), 1)
 		}
-		log.Debugf("Result of /folders: %v", string(data[:]))
+		log.Infof("Result of /folders: %v", string(data[:]))
 
 		folders := xdsconfig.FoldersConfig{}
 		errMar := json.Unmarshal(data, &folders)
@@ -270,7 +270,12 @@ func main() {
 		if rPath == "" && folder != nil {
 			cwd, err := os.Getwd()
 			if err == nil {
-				if sp := strings.SplitAfter(cwd, "/"+folder.RelativePath); len(sp) == 2 {
+				fldRp := folder.RelativePath
+				if !strings.HasPrefix(fldRp, "/") {
+					fldRp = "/" + fldRp
+				}
+				log.Debugf("Try to auto-setup rPath: cwd=%s ; RelativePath=%s", cwd, fldRp)
+				if sp := strings.SplitAfter(cwd, fldRp); len(sp) == 2 {
 					rPath = strings.Trim(sp[1], "/")
 					log.Debugf("Auto-setup rPath to: '%s'", rPath)
 				}
@@ -288,7 +293,7 @@ func main() {
 		if err != nil {
 			return cli.NewExitError(err.Error(), 1)
 		}
-		log.Debugf("POST %s%s %v", uri, ExecCommand, string(body))
+		log.Infof("POST %s%s %v", uri, ExecCommand, string(body))
 		if err := c.HTTPPost(ExecCommand, string(body)); err != nil {
 			return cli.NewExitError(err.Error(), 1)
 		}
