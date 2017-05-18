@@ -15,6 +15,19 @@
             "args": ["clean"],
             "showLog": false
         },
+         {
+            "name": "xds-make (list Projects)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceRoot}",
+            "env": {
+                "GOPATH": "${workspaceRoot}/../../../..:${env:GOPATH}",
+                "XDS_LOGLEVEL": "debug"
+            },
+            "args": ["--list"],
+            "showLog": false
+        },
         {
             "name": "xds-make (with args)",
             "type": "go",

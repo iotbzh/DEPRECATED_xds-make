@@ -14,6 +14,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/iotbzh/xds-server/lib/apiv1"
 	"github.com/iotbzh/xds-server/lib/common"
+	"github.com/iotbzh/xds-server/lib/crosssdk"
 	"github.com/iotbzh/xds-server/lib/xdsconfig"
 	"github.com/zhouhui8915/go-socket.io-client"
 )
@@ -45,7 +46,7 @@ var ExecCommand = "/make"
 
 // main
 func main() {
-	var uri, prjID, rPath, logLevel string
+	var uri, prjID, rPath, logLevel, sdkid string
 	var withTimestamp, listProject bool
 
 	// Create a new App instance
@@ -69,7 +70,7 @@ func main() {
 			Destination: &prjID,
 		},
 		cli.BoolFlag{
-			Name:        "list",
+			Name:        "list, ls",
 			Usage:       "list existing projects",
 			Destination: &listProject,
 		},
@@ -87,6 +88,13 @@ func main() {
 			Hidden:      true,
 			Usage:       "relative path into project",
 			Destination: &rPath,
+		},
+		cli.StringFlag{
+			Name:        "sdkid",
+			EnvVar:      "XDS_SDK_ID",
+			Hidden:      true,
+			Usage:       "SDK ID to use to compile project",
+			Destination: &sdkid,
 		},
 		cli.BoolFlag{
 			Name:        "timestamp, ts",
@@ -110,6 +118,7 @@ func main() {
 		"\n XDS_PROJECT_ID      project ID you want to build (mandatory variable)" +
 		"\n XDS_LOGLEVEL        logging level (supported levels: panic, fatal, error, warn, info, debug)" +
 		"\n XDS_RPATH           relative path into project" +
+		"\n XDS_SDK_ID          Cross Sdk ID to use to build project" +
 		"\n XDS_TIMESTAMP       prefix output with timestamp" +
 		"\n XDS_SERVER_URL      remote XDS server url (default http://localhost:8000)"
 
@@ -129,7 +138,7 @@ func main() {
 			switch a {
 			// Allow to print help and version of this utility and
 			// not help or version of sub-process
-			case "-h", "--help", "-v", "--version", "--list":
+			case "-h", "--help", "-v", "--version", "--list", "-ls":
 				args[1] = a
 				found = true
 				goto exit_loop
@@ -203,11 +212,31 @@ func main() {
 				exc = 1
 			}
 			if errMar == nil {
-				msg += "\nList of existing projects: \n"
+				msg += "List of existing projects (ID - Label): "
 				for _, f := range folders {
-					msg += fmt.Sprintf("  %s\n", f.ID)
+					msg += fmt.Sprintf("\n  %s\t - %s", f.ID, f.Label)
+					if f.DefaultSdk != "" {
+						msg += fmt.Sprintf("\t(default SDK: %s)", f.DefaultSdk)
+					}
+				}
+				msg += "\n"
+			}
+
+			data = nil
+			if err := c.HTTPGet("/sdks", &data); err != nil {
+				return cli.NewExitError(err.Error(), 1)
+			}
+			log.Infof("Result of /sdks: %v", string(data[:]))
+
+			sdks := []crosssdk.SDK{}
+			errMar = json.Unmarshal(data, &sdks)
+			if errMar == nil {
+				msg += "\nList of installed cross SDKs (ID - Name):\n"
+				for _, s := range sdks {
+					msg += fmt.Sprintf("  %s\t - %s\n", s.ID, s.Name)
 				}
 			}
+
 			return cli.NewExitError(msg, exc)
 		}
 
@@ -287,6 +316,7 @@ func main() {
 			ID:         prjID,
 			RPath:      rPath,
 			Args:       cmdArgs,
+			SdkID:      sdkid,
 			CmdTimeout: 60,
 		}
 		body, err := json.Marshal(args)
