@@ -212,9 +212,10 @@ func main() {
 				exc = 1
 			}
 			if errMar == nil {
-				msg += "List of existing projects (ID - Label): "
+				msg += "List of existing projects (use: export XDS_PROJECT_ID=<< ID >>): \n"
+				msg += "  ID\t\t\t\t | Label"
 				for _, f := range folders {
-					msg += fmt.Sprintf("\n  %s\t - %s", f.ID, f.Label)
+					msg += fmt.Sprintf("\n  %s\t | %s", f.ID, f.Label)
 					if f.DefaultSdk != "" {
 						msg += fmt.Sprintf("\t(default SDK: %s)", f.DefaultSdk)
 					}
@@ -231,10 +232,17 @@ func main() {
 			sdks := []crosssdk.SDK{}
 			errMar = json.Unmarshal(data, &sdks)
 			if errMar == nil {
-				msg += "\nList of installed cross SDKs (ID - Name):\n"
+				msg += "\nList of installed cross SDKs (use: export XDS_SDK_ID=<< ID >>): \n"
+				msg += "  ID\t\t\t\t\t | NAME\n"
 				for _, s := range sdks {
-					msg += fmt.Sprintf("  %s\t - %s\n", s.ID, s.Name)
+					msg += fmt.Sprintf("  %s\t | %s\n", s.ID, s.Name)
 				}
+			}
+
+			if len(folders) > 0 && len(sdks) > 0 {
+				msg += fmt.Sprintf("\n")
+				msg += fmt.Sprintf("For example: \n")
+				msg += fmt.Sprintf("  XDS_PROJECT_ID=%q XDS_SDK_ID=%q  xds-make all\n", folders[0].ID, sdks[0].ID)
 			}
 
 			return cli.NewExitError(msg, exc)
