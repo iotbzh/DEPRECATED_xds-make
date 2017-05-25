@@ -65,8 +65,7 @@ func main() {
 		cli.StringFlag{
 			Name:        "id",
 			EnvVar:      "XDS_PROJECT_ID",
-			Hidden:      true,
-			Usage:       "project ID you want to build",
+			Usage:       "project ID you want to build (mandatory variable)",
 			Destination: &prjID,
 		},
 		cli.BoolFlag{
@@ -77,7 +76,6 @@ func main() {
 		cli.StringFlag{
 			Name:        "log",
 			EnvVar:      "XDS_LOGLEVEL",
-			Hidden:      true,
 			Usage:       "logging level (supported levels: panic, fatal, error, warn, info, debug)",
 			Value:       defaultLogLevel,
 			Destination: &logLevel,
@@ -85,66 +83,64 @@ func main() {
 		cli.StringFlag{
 			Name:        "rpath",
 			EnvVar:      "XDS_RPATH",
-			Hidden:      true,
 			Usage:       "relative path into project",
 			Destination: &rPath,
 		},
 		cli.StringFlag{
 			Name:        "sdkid",
 			EnvVar:      "XDS_SDK_ID",
-			Hidden:      true,
-			Usage:       "SDK ID to use to compile project",
+			Usage:       "Cross Sdk ID to use to build project",
 			Destination: &sdkid,
 		},
 		cli.BoolFlag{
 			Name:        "timestamp, ts",
 			EnvVar:      "XDS_TIMESTAMP",
-			Hidden:      true,
 			Usage:       "prefix output with timestamp",
 			Destination: &withTimestamp,
 		},
 		cli.StringFlag{
 			Name:        "url",
 			EnvVar:      "XDS_SERVER_URL",
-			Hidden:      true,
 			Value:       "localhost:8000",
 			Usage:       "remote XDS server url",
 			Destination: &uri,
 		},
 	}
 
-	// FIXME - don't duplicate, but reuse flag definition
-	dynDesc := "\nENVIRONMENT VARIABLES:" +
-		"\n XDS_PROJECT_ID      project ID you want to build (mandatory variable)" +
-		"\n XDS_LOGLEVEL        logging level (supported levels: panic, fatal, error, warn, info, debug)" +
-		"\n XDS_RPATH           relative path into project" +
-		"\n XDS_SDK_ID          Cross Sdk ID to use to build project" +
-		"\n XDS_TIMESTAMP       prefix output with timestamp" +
-		"\n XDS_SERVER_URL      remote XDS server url (default http://localhost:8000)"
-
+	// Create env vars help
+	dynDesc := "\nENVIRONMENT VARIABLES:"
+	for _, f := range app.Flags {
+		var env, usage string
+		switch f.(type) {
+		case cli.StringFlag:
+			fs := f.(cli.StringFlag)
+			env = fs.EnvVar
+			usage = fs.Usage
+		case cli.BoolFlag:
+			fb := f.(cli.BoolFlag)
+			env = fb.EnvVar
+			usage = fb.Usage
+		default:
+			panic("Un-implemented option type")
+		}
+		if env != "" {
+			dynDesc += fmt.Sprintf("\n %s \t\t %s", env, usage)
+		}
+	}
 	app.Description = appDescription + dynDesc
 
-	exeName := filepath.Base(os.Args[0])
 	args := make([]string, len(os.Args))
 	args[0] = os.Args[0]
 	argsCommand := make([]string, len(os.Args))
+	exeName := filepath.Base(os.Args[0])
 
-	// Only decode arguments when executable is this wrapper
-	// IOW, pass all arguments without processing when executable name is "make"
-	if exeName != "make" {
-		// only process args before skip arguments, IOW before '--'
-		found := false
+	// Split xds-make options from make options
+	// only process args before skip arguments, IOW before '--'
+	found := false
+	if exeName == appName || exeName == "debug" {
 		for idx, a := range os.Args[1:] {
-			switch a {
-			// Allow to print help and version of this utility and
-			// not help or version of sub-process
-			case "-h", "--help", "-v", "--version", "--list", "-ls":
-				args[1] = a
-				found = true
-				goto exit_loop
-
-			// Detect skip option (IOW '--') to split arguments
-			case "--":
+			if a == "--" {
+				// Detect skip option (IOW '--') to split arguments
 				copy(args, os.Args[0:idx+1])
 				copy(argsCommand, os.Args[idx+2:])
 				found = true
@@ -153,11 +149,10 @@ func main() {
 		}
 	exit_loop:
 		if !found {
-			copy(argsCommand, os.Args[1:])
+			copy(args, os.Args)
 		}
 	} else {
-		// Pass all arguments when invoked with executable name "make"
-		copy(argsCommand, os.Args[1:])
+		copy(argsCommand, os.Args)
 	}
 
 	// only one action
@@ -171,9 +166,7 @@ func main() {
 		}
 		log.Formatter = &logrus.TextFormatter{}
 
-		cmdArgs := strings.Trim(strings.Join(argsCommand, " "), " ")
-
-		log.Infof("Execute: %s %v", ExecCommand, cmdArgs)
+		log.Infof("Execute: %s %v", ExecCommand, argsCommand)
 
 		// Define HTTP and WS url
 		baseURL := uri
@@ -242,7 +235,9 @@ func main() {
 			if len(folders) > 0 && len(sdks) > 0 {
 				msg += fmt.Sprintf("\n")
 				msg += fmt.Sprintf("For example: \n")
-				msg += fmt.Sprintf("  XDS_PROJECT_ID=%q XDS_SDK_ID=%q  xds-make all\n", folders[0].ID, sdks[0].ID)
+				msg += fmt.Sprintf("  xds-make --id %q --sdkid %q -- all\n", folders[0].ID, sdks[0].ID)
+				msg += " or\n"
+				msg += fmt.Sprintf("  XDS_PROJECT_ID=%q XDS_SDK_ID=%q  make all\n", folders[0].ID, sdks[0].ID)
 			}
 
 			return cli.NewExitError(msg, exc)
@@ -322,9 +317,10 @@ func main() {
 		// Send build command
 		args := apiv1.MakeArgs{
 			ID:         prjID,
-			RPath:      rPath,
-			Args:       cmdArgs,
 			SdkID:      sdkid,
+			Args:       argsCommand,
+			Env:        []string{},
+			RPath:      rPath,
 			CmdTimeout: 60,
 		}
 		body, err := json.Marshal(args)

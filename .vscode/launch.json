@@ -12,7 +12,7 @@
                 "XDS_LOGLEVEL": "debug",
                 "XDS_RPATH": "agent/"
             },
-            "args": ["clean"],
+            "args": ["--help"],
             "showLog": false
         },
          {
