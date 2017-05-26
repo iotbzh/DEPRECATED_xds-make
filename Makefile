@@ -1,4 +1,4 @@
-# Makefile used to build XDS make command
+# Makefile used to build xds-make and xds-exec commands
 
 # Application Version
 VERSION := 1.0.0
@@ -17,6 +17,7 @@ HOST_GOARCH=$(shell go env GOARCH)
 
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 ROOT_SRCDIR := $(patsubst %/,%,$(dir $(mkfile_path)))
+BINDIR := $(ROOT_SRCDIR)/bin
 ROOT_GOPRJ := $(abspath $(ROOT_SRCDIR)/../../../..)
 
 export GOPATH := $(shell go env GOPATH):$(ROOT_GOPRJ)
@@ -27,14 +28,20 @@ VERBOSE_2 := -v -x
 
 REPOPATH=github.com/iotbzh/xds-make
 TARGET := xds-make
-TARGET_NATIVE := $(subst xds-,,$(TARGET))
 
-all: build
+all: xds-make xds-exec
 
-build: vendor
-	@echo "### Build $(TARGET) (version $(VERSION), subversion $(SUB_VERSION))";
-	@cd $(ROOT_SRCDIR); $(BUILD_ENV_FLAGS) go build $(VERBOSE_$(V)) -i -o bin/$(TARGET) -ldflags "-X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" .
-	@(cd bin && ln -sf $(TARGET) $(TARGET_NATIVE))
+build: xds-make
+
+xds-make: vendor
+	@echo "### Build $@ (version $(VERSION), subversion $(SUB_VERSION))";
+	@cd $(ROOT_SRCDIR); $(BUILD_ENV_FLAGS) go build $(VERBOSE_$(V)) -i -o $(BINDIR)/$@ -ldflags "-X main.AppName=$@ -X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" .
+	@(cd $(BINDIR) && ln -sf $@ $(subst xds-,,$@))
+
+xds-exec: vendor
+	@echo "### Build $@ (version $(VERSION), subversion $(SUB_VERSION))";
+	@cd $(ROOT_SRCDIR); $(BUILD_ENV_FLAGS) go build $(VERBOSE_$(V)) -i -o $(BINDIR)/$@ -ldflags "-X main.AppName=$@ -X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" .
+	@(cd $(BINDIR) && ln -sf $@ $(subst xds-,,$@))
 
 test: tools/glide
 	go test --race $(shell ./tools/glide novendor)
@@ -46,14 +53,14 @@ fmt: tools/glide
 	go fmt $(shell ./tools/glide novendor)
 
 clean:
-	rm -rf ./bin/* debug $(ROOT_GOPRJ)/pkg/*/$(REPOPATH)
+	rm -rf $(BINDIR)/* debug $(ROOT_GOPRJ)/pkg/*/$(REPOPATH)
 
 distclean: clean
-	rm -rf bin tools glide.lock vendor
+	rm -rf $(BINDIR) tools glide.lock vendor
 
 # FIXME - package webapp
 release: releasetar
-	goxc -d ./release -tasks-=go-vet,go-test -os="linux darwin" -pv=$(VERSION)  -arch="386 amd64 arm arm64" -build -ldflags "-X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" -resources-include="README.md,Documentation,LICENSE,contrib" -main-dirs-exclude="vendor"
+	goxc -d ./release -tasks-=go-vet,go-test -os="linux darwin" -pv=$(VERSION)  -arch="386 amd64 arm arm64" -build -ldflags "-X main.AppName=$@ -X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" -resources-include="README.md,Documentation,LICENSE,contrib" -main-dirs-exclude="vendor"
 
 releasetar:
 	mkdir -p release/$(VERSION)

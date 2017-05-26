@@ -19,19 +19,17 @@ import (
 	"github.com/zhouhui8915/go-socket.io-client"
 )
 
-const (
-	appName         = "xds-make"
-	appDescription  = "make utility of X(cross) Development System\n"
-	appCopyright    = "Apache-2.0"
-	appUsage        = "wrapper on make for X(cross) Development System."
-	defaultLogLevel = "error"
-)
-
 var appAuthors = []cli.Author{
 	cli.Author{Name: "Sebastien Douheret", Email: "sebastien@iot.bzh"},
 }
 
-// AppVersion is the version of this application
+// AppName name of this application
+var AppName = ""
+
+// AppNativeName native command name that this application can overload
+var AppNativeName = ""
+
+// AppVersion Version of this application
 var AppVersion = "?.?.?"
 
 // AppSubVersion is the git tag id added to version string
@@ -41,17 +39,33 @@ var AppSubVersion = "unknown-dev"
 // Create logger
 var log = logrus.New()
 
-// ExecCommand is the HTTP url command to execute
-var ExecCommand = "/make"
+// Application details
+const (
+	appCopyright    = "Apache-2.0"
+	defaultLogLevel = "error"
+)
 
 // main
 func main() {
 	var uri, prjID, rPath, logLevel, sdkid string
 	var withTimestamp, listProject bool
 
+	// Allow to set app name from exec (useful for debugging)
+	if AppName == "" {
+		AppName = os.Getenv("XDS_APPNAME")
+	}
+	if AppName == "" {
+		panic("Invalid setup, AppName not define !")
+	}
+	if AppNativeName == "" {
+		AppNativeName = AppName[4:]
+	}
+	appDescription := fmt.Sprintf("%s utility of X(cross) Development System\n", AppNativeName)
+	appUsage := fmt.Sprintf("wrapper on %s for X(cross) Development System.", AppNativeName)
+
 	// Create a new App instance
 	app := cli.NewApp()
-	app.Name = appName
+	app.Name = AppName
 	app.Usage = appUsage
 	app.Version = AppVersion + " (" + AppSubVersion + ")"
 	app.Authors = appAuthors
@@ -134,10 +148,10 @@ func main() {
 	argsCommand := make([]string, len(os.Args))
 	exeName := filepath.Base(os.Args[0])
 
-	// Split xds-make options from make options
+	// Split xds-xxx options from native command (eg. make) options
 	// only process args before skip arguments, IOW before '--'
 	found := false
-	if exeName == appName || exeName == "debug" {
+	if exeName != AppNativeName {
 		for idx, a := range os.Args[1:] {
 			if a == "--" {
 				// Detect skip option (IOW '--') to split arguments
@@ -159,6 +173,18 @@ func main() {
 	app.Action = func(ctx *cli.Context) error {
 		var err error
 
+		var execCommand, ccHelp string
+		switch AppName {
+		case "xds-make":
+			execCommand = "/make"
+			ccHelp = "all"
+		case "xds-exec":
+			execCommand = "/exec"
+			ccHelp = "'mkdir build; cd build; cmake ..'"
+		default:
+			panic("Un-implemented command")
+		}
+
 		// Set logger level and formatter
 		if log.Level, err = logrus.ParseLevel(logLevel); err != nil {
 			fmt.Printf("Invalid log level : \"%v\"\n", logLevel)
@@ -166,7 +192,7 @@ func main() {
 		}
 		log.Formatter = &logrus.TextFormatter{}
 
-		log.Infof("Execute: %s %v", ExecCommand, argsCommand)
+		log.Infof("Execute: %s %v", execCommand, argsCommand)
 
 		// Define HTTP and WS url
 		baseURL := uri
@@ -235,9 +261,9 @@ func main() {
 			if len(folders) > 0 && len(sdks) > 0 {
 				msg += fmt.Sprintf("\n")
 				msg += fmt.Sprintf("For example: \n")
-				msg += fmt.Sprintf("  xds-make --id %q --sdkid %q -- all\n", folders[0].ID, sdks[0].ID)
+				msg += fmt.Sprintf("  %s --id %q --sdkid %q -- %s\n", AppName, folders[0].ID, sdks[0].ID, ccHelp)
 				msg += " or\n"
-				msg += fmt.Sprintf("  XDS_PROJECT_ID=%q XDS_SDK_ID=%q  make all\n", folders[0].ID, sdks[0].ID)
+				msg += fmt.Sprintf("  XDS_PROJECT_ID=%q XDS_SDK_ID=%q  %s %s\n", folders[0].ID, sdks[0].ID, AppNativeName, ccHelp)
 			}
 
 			return cli.NewExitError(msg, exc)
@@ -272,22 +298,40 @@ func main() {
 			exitChan <- exitResult{err, 2}
 		})
 
-		iosk.On(apiv1.MakeOutEvent, func(ev apiv1.MakeOutMsg) {
+		outFunc := func(timestamp, stdout, stderr string) {
 			tm := ""
 			if withTimestamp {
-				tm = ev.Timestamp + "| "
+				tm = timestamp + "| "
 			}
-			if ev.Stdout != "" {
-				fmt.Printf("%s%s\n", tm, ev.Stdout)
+			if withTimestamp {
+				tm = timestamp + "| "
 			}
-			if ev.Stderr != "" {
-				fmt.Fprintf(os.Stderr, "%s%s\n", tm, ev.Stderr)
+			if stdout != "" {
+				fmt.Printf("%s%s\n", tm, stdout)
 			}
-		})
+			if stderr != "" {
+				fmt.Fprintf(os.Stderr, "%s%s\n", tm, stderr)
+			}
+		}
 
-		iosk.On(apiv1.MakeExitEvent, func(ev apiv1.MakeExitMsg) {
-			exitChan <- exitResult{ev.Error, ev.Code}
-		})
+		switch AppName {
+		case "xds-make":
+			iosk.On(apiv1.MakeOutEvent, func(ev apiv1.MakeOutMsg) {
+				outFunc(ev.Timestamp, ev.Stdout, ev.Stderr)
+			})
+
+			iosk.On(apiv1.MakeExitEvent, func(ev apiv1.MakeExitMsg) {
+				exitChan <- exitResult{ev.Error, ev.Code}
+			})
+		case "xds-exec":
+			iosk.On(apiv1.ExecOutEvent, func(ev apiv1.ExecOutMsg) {
+				outFunc(ev.Timestamp, ev.Stdout, ev.Stderr)
+			})
+
+			iosk.On(apiv1.ExecExitEvent, func(ev apiv1.ExecExitMsg) {
+				exitChan <- exitResult{ev.Error, ev.Code}
+			})
+		}
 
 		// Retrieve the folder definition
 		folder := &xdsconfig.FolderConfig{}
@@ -315,20 +359,36 @@ func main() {
 		}
 
 		// Send build command
-		args := apiv1.MakeArgs{
-			ID:         prjID,
-			SdkID:      sdkid,
-			Args:       argsCommand,
-			Env:        []string{},
-			RPath:      rPath,
-			CmdTimeout: 60,
+		var body []byte
+		switch AppName {
+		case "xds-make":
+			args := apiv1.MakeArgs{
+				ID:         prjID,
+				SdkID:      sdkid,
+				Args:       argsCommand,
+				Env:        []string{},
+				RPath:      rPath,
+				CmdTimeout: 60,
+			}
+			body, err = json.Marshal(args)
+
+		case "xds-exec":
+			args := apiv1.ExecArgs{
+				ID:         prjID,
+				SdkID:      sdkid,
+				Cmd:        strings.Trim(strings.Join(argsCommand, " "), " "),
+				Args:       []string{},
+				Env:        []string{},
+				RPath:      rPath,
+				CmdTimeout: 60,
+			}
+			body, err = json.Marshal(args)
 		}
-		body, err := json.Marshal(args)
 		if err != nil {
 			return cli.NewExitError(err.Error(), 1)
 		}
-		log.Infof("POST %s%s %v", uri, ExecCommand, string(body))
-		if err := c.HTTPPost(ExecCommand, string(body)); err != nil {
+		log.Infof("POST %s%s %v", uri, execCommand, string(body))
+		if err := c.HTTPPost(execCommand, string(body)); err != nil {
 			return cli.NewExitError(err.Error(), 1)
 		}
 

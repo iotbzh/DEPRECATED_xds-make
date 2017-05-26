@@ -8,6 +8,7 @@
             "program": "${workspaceRoot}",
             "env": {
                 "GOPATH": "${workspaceRoot}/../../../..:${env:GOPATH}",
+                "XDS_APPNAME": "xds-make",
                 "XDS_PROJECT_ID": "CKI7R47-UWNDQC3_test",
                 "XDS_LOGLEVEL": "debug",
                 "XDS_RPATH": "agent/"
@@ -23,6 +24,7 @@
             "program": "${workspaceRoot}",
             "env": {
                 "GOPATH": "${workspaceRoot}/../../../..:${env:GOPATH}",
+                "XDS_APPNAME": "xds-make",
                 "XDS_LOGLEVEL": "debug"
             },
             "args": ["--list"],
@@ -36,10 +38,30 @@
             "program": "${workspaceRoot}",
             "env": {
                 "GOPATH": "${workspaceRoot}/../../../..:${env:GOPATH}",
-                "XDS_PROJECT_ID": "CKI7R47-UWNDQC3_test",
-                "XDS_LOGLEVEL": "debug"
+                "XDS_APPNAME": "xds-make",
+                "XDS_PROJECT_ID": "IW7B4EE-DBY4Z74_Agent-TCF",
+                "XDS_SDK_ID": "poky-agl_aarch64_3.90.0+snapshot",
+                "XDS_LOGLEVEL": "debug",
+                "XDS_SERVER_URL": "localhost:8800"
             },
             "args": ["-rpath", "agent", "--", "clean"],
+            "showLog": false
+        },
+        {
+            "name": "xds-exec (with args)",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceRoot}",
+            "env": {
+                "GOPATH": "${workspaceRoot}/../../../..:${env:GOPATH}",
+                "XDS_APPNAME": "xds-exec",
+                "XDS_PROJECT_ID": "IW7B4EE-DBY4Z74_Agent-TCF",
+                "XDS_SDK_ID": "poky-agl_aarch64_3.90.0+snapshot",
+                "XDS_LOGLEVEL": "debug",
+                "XDS_SERVER_URL": "localhost:8800"
+            },
+            "args": ["--", "pwd; ls -l"],
             "showLog": false
         }
 

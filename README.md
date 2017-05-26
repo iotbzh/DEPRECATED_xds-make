@@ -8,6 +8,9 @@ your application by a remote `xds-server`.
 `xds-make` uses [Syncthing](https://syncthing.net/) tool to synchronize your
 projects files from your machine to the XDS build server machine (or container).
 
+> **NOTE**: This repo also generates `xds-exec` command that can be use to execute
+any command on a remote `xds-server`
+
 > **NOTE**: For now, only Syncthing sharing method is supported to synchronize
 projects files.
 
@@ -88,7 +91,7 @@ USAGE:
    xds-make [global options] command [command options] [arguments...]
 
 VERSION:
-   1.0.0 (4e22f6f)
+   1.0.0 (a107bef)
 
 DESCRIPTION:
    make utility of X(cross) Development System
@@ -97,8 +100,9 @@ ENVIRONMENT VARIABLES:
  XDS_PROJECT_ID      project ID you want to build (mandatory variable)
  XDS_LOGLEVEL        logging level (supported levels: panic, fatal, error, warn, info, debug)
  XDS_RPATH           relative path into project
+ XDS_SDK_ID          Cross Sdk ID to use to build project
  XDS_TIMESTAMP       prefix output with timestamp
- XDS_SERVER_URL      remote XDS server url (default http://localhost:8000)
+ XDS_SERVER_URL      remote XDS server url
 
 AUTHOR:
    Sebastien Douheret <sebastien@iot.bzh>
@@ -107,9 +111,15 @@ COMMANDS:
      help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --list         list existing projects
-   --help, -h     show help
-   --version, -v  print the version
+   --id value         project ID you want to build (mandatory variable) [$XDS_PROJECT_ID]
+   --list, --ls       list existing projects
+   --log value        logging level (supported levels: panic, fatal, error, warn, info, debug) (default: "error") [$XDS_LOGLEVEL]
+   --rpath value      relative path into project [$XDS_RPATH]
+   --sdkid value      Cross Sdk ID to use to build project [$XDS_SDK_ID]
+   --timestamp, --ts  prefix output with timestamp [$XDS_TIMESTAMP]
+   --url value        remote XDS server url (default: "localhost:8000") [$XDS_SERVER_URL]
+   --help, -h         show help
+   --version, -v      print the version
 
 COPYRIGHT:
    Apache-2.0
