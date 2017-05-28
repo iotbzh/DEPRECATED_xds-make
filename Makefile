@@ -14,11 +14,19 @@ endif
 
 HOST_GOOS=$(shell go env GOOS)
 HOST_GOARCH=$(shell go env GOARCH)
+ARCH=$(HOST_GOOS)-$(HOST_GOARCH)
+
+EXT=
+ifeq ($(HOST_GOOS), windows)
+	EXT=.exe
+endif
+
 
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 ROOT_SRCDIR := $(patsubst %/,%,$(dir $(mkfile_path)))
 BINDIR := $(ROOT_SRCDIR)/bin
 ROOT_GOPRJ := $(abspath $(ROOT_SRCDIR)/../../../..)
+PACKAGE_DIR := $(ROOT_SRCDIR)/package
 
 export GOPATH := $(shell go env GOPATH):$(ROOT_GOPRJ)
 export PATH := $(PATH):$(ROOT_SRCDIR)/tools
@@ -35,13 +43,13 @@ build: xds-make
 
 xds-make: vendor
 	@echo "### Build $@ (version $(VERSION), subversion $(SUB_VERSION))";
-	@cd $(ROOT_SRCDIR); $(BUILD_ENV_FLAGS) go build $(VERBOSE_$(V)) -i -o $(BINDIR)/$@ -ldflags "-X main.AppName=$@ -X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" .
-	@(cd $(BINDIR) && ln -sf $@ $(subst xds-,,$@))
+	@cd $(ROOT_SRCDIR); $(BUILD_ENV_FLAGS) go build $(VERBOSE_$(V)) -i -o $(BINDIR)/$@$(EXT) -ldflags "-X main.AppName=$@ -X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" .
+	@([ "$(HOST_GOOS)" = "linux" ] && { cd $(BINDIR) && ln -sf $@ $(subst xds-,,$@); } || { true; } )
 
 xds-exec: vendor
 	@echo "### Build $@ (version $(VERSION), subversion $(SUB_VERSION))";
-	@cd $(ROOT_SRCDIR); $(BUILD_ENV_FLAGS) go build $(VERBOSE_$(V)) -i -o $(BINDIR)/$@ -ldflags "-X main.AppName=$@ -X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" .
-	@(cd $(BINDIR) && ln -sf $@ $(subst xds-,,$@))
+	@cd $(ROOT_SRCDIR); $(BUILD_ENV_FLAGS) go build $(VERBOSE_$(V)) -i -o $(BINDIR)/$@$(EXT) -ldflags "-X main.AppName=$@ -X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" .
+	@([ "$(HOST_GOOS)" = "linux" ] && { cd $(BINDIR) && ln -sf $@ $(subst xds-,,$@); } || { true; } )
 
 test: tools/glide
 	go test --race $(shell ./tools/glide novendor)
@@ -52,26 +60,34 @@ vet: tools/glide
 fmt: tools/glide
 	go fmt $(shell ./tools/glide novendor)
 
+.PHONY: clean
 clean:
-	rm -rf $(BINDIR)/* debug $(ROOT_GOPRJ)/pkg/*/$(REPOPATH)
+	rm -rf $(BINDIR)/* debug $(ROOT_GOPRJ)/pkg/*/$(REPOPATH) $(PACKAGE_DIR)
 
 distclean: clean
-	rm -rf $(BINDIR) tools glide.lock vendor
+	rm -rf $(BINDIR) tools glide.lock vendor $(ROOT_SRCDIR)/*.zip
 
-# FIXME - package webapp
-release: releasetar
-	goxc -d ./release -tasks-=go-vet,go-test -os="linux darwin" -pv=$(VERSION)  -arch="386 amd64 arm arm64" -build -ldflags "-X main.AppName=$@ -X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" -resources-include="README.md,Documentation,LICENSE,contrib" -main-dirs-exclude="vendor"
+package: clean all
+	@mkdir -p $(PACKAGE_DIR)/xds-make
+	cp -a $(BINDIR)/*make$(EXT) $(PACKAGE_DIR)/xds-make
+	cd $(PACKAGE_DIR) && zip -r $(ROOT_SRCDIR)/xds-make_$(ARCH)-v$(VERSION)_$(SUB_VERSION).zip ./xds-make
+	@mkdir -p $(PACKAGE_DIR)/xds-exec
+	cp -a $(BINDIR)/*exec$(EXT) $(PACKAGE_DIR)/xds-exec
+	cd $(PACKAGE_DIR) && zip -r $(ROOT_SRCDIR)/xds-exec_$(ARCH)-v$(VERSION)_$(SUB_VERSION).zip ./xds-exec
 
-releasetar:
-	mkdir -p release/$(VERSION)
-	glide install --strip-vcs --strip-vendor --update-vendored --delete
-	glide-vc --only-code --no-tests --keep="**/*.json.in"
-	git ls-files > /tmp/$(TARGET)-build
-	find vendor >> /tmp/$(TARGET)-build
-	find webapp/ -path webapp/node_modules -prune -o -print >> /tmp/$(TARGET)-build
-	tar -cvf release/$(VERSION)/$(TARGET)_$(VERSION)_src.tar -T /tmp/$(TARGET)-build --transform 's,^,$(TARGET)_$(VERSION)/,'
-	rm /tmp/$(TARGET)-build
-	gzip release/$(VERSION)/$(TARGET)_$(VERSION)_src.tar
+#release: releasetar
+#	goxc -d ./release -tasks-=go-vet,go-test -os="linux darwin" -pv=$(VERSION)  -arch="386 amd64 arm arm64" -build -ldflags "-X main.AppName=$@ -X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" -resources-include="README.md,Documentation,LICENSE,contrib" -main-dirs-exclude="vendor"
+
+#releasetar:
+#	mkdir -p release/$(VERSION)
+#	glide install --strip-vcs --strip-vendor --update-vendored --delete
+#	glide-vc --only-code --no-tests --keep="**/*.json.in"
+#	git ls-files > /tmp/$(TARGET)-build
+#	find vendor >> /tmp/$(TARGET)-build
+#	find webapp/ -path webapp/node_modules -prune -o -print >> /tmp/$(TARGET)-build
+#	tar -cvf release/$(VERSION)/$(TARGET)_$(VERSION)_src.tar -T /tmp/$(TARGET)-build --transform 's,^,$(TARGET)_$(VERSION)/,'
+#	rm /tmp/$(TARGET)-build
+#	gzip release/$(VERSION)/$(TARGET)_$(VERSION)_src.tar
 
 vendor: tools/glide glide.yaml
 	./tools/glide install --strip-vendor
