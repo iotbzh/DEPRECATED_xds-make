@@ -6,9 +6,15 @@ VERSION := 1.0.0
 
 # Retrieve git tag/commit to set sub-version string
 ifeq ($(origin SUB_VERSION), undefined)
-	SUB_VERSION := $(shell git describe --tags --always | sed 's/^v//')
-	ifeq ($(SUB_VERSION), )
-		SUB_VERSION=unknown-dev
+	SUB_VERSION := $(shell git describe --tags 2>/dev/null | sed 's/^v//')
+	ifneq ($(SUB_VERSION), )
+		VERSION := $(firstword $(subst -, ,$(SUB_VERSION)))
+		SUB_VERSION := $(word 2,$(subst -, ,$(SUB_VERSION)))
+	else
+		SUB_VERSION := $(shell git describe --tags --always  | sed 's/^v//')
+		ifeq ($(SUB_VERSION), )
+			SUB_VERSION := unknown-dev
+		endif
 	endif
 endif
 
@@ -70,10 +76,17 @@ distclean: clean
 package: clean all
 	@mkdir -p $(PACKAGE_DIR)/xds-make
 	cp -a $(BINDIR)/*make$(EXT) $(PACKAGE_DIR)/xds-make
-	cd $(PACKAGE_DIR) && zip -r $(ROOT_SRCDIR)/xds-make_$(ARCH)-v$(VERSION)_$(SUB_VERSION).zip ./xds-make
+	cd $(PACKAGE_DIR) && zip  --symlinks -r $(ROOT_SRCDIR)/xds-make_$(ARCH)-v$(VERSION)_$(SUB_VERSION).zip ./xds-make
 	@mkdir -p $(PACKAGE_DIR)/xds-exec
 	cp -a $(BINDIR)/*exec$(EXT) $(PACKAGE_DIR)/xds-exec
-	cd $(PACKAGE_DIR) && zip -r $(ROOT_SRCDIR)/xds-exec_$(ARCH)-v$(VERSION)_$(SUB_VERSION).zip ./xds-exec
+	cd $(PACKAGE_DIR) && zip  --symlinks -r $(ROOT_SRCDIR)/xds-exec_$(ARCH)-v$(VERSION)_$(SUB_VERSION).zip ./xds-exec
+
+.PHONY: package-all
+package-all:
+	@echo "# Build linux amd64..."
+	GOOS=linux GOARCH=amd64 RELEASE=1 make -f $(ROOT_SRCDIR)/Makefile package
+	@echo "# Build windows amd64..."
+	GOOS=windows GOARCH=amd64 RELEASE=1 make -f $(ROOT_SRCDIR)/Makefile package
 
 #release: releasetar
 #	goxc -d ./release -tasks-=go-vet,go-test -os="linux darwin" -pv=$(VERSION)  -arch="386 amd64 arm arm64" -build -ldflags "-X main.AppName=$@ -X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" -resources-include="README.md,Documentation,LICENSE,contrib" -main-dirs-exclude="vendor"
