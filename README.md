@@ -1,15 +1,15 @@
-xds-make: wrapper on make for XDS
-=================================
+xds-make & xds-exec: wrapper on make and exec for XDS
+=====================================================
 
-xds-make is a wrapper on make command for X(cross) Development System.
+`xds-make` is a wrapper on make command for X(cross) Development System.
+
+As well as `xds-exec` is a wrapper on exec command and can be use to execute any
+command on a remote `xds-server`.
 
 This tool can be used in lieu of "standard" `make` command to trigger build of
 your application by a remote `xds-server`.
 `xds-make` uses [Syncthing](https://syncthing.net/) tool to synchronize your
 projects files from your machine to the XDS build server machine (or container).
-
-> **NOTE**: This repo also generates `xds-exec` command that can be use to execute
-any command on a remote `xds-server`
 
 > **NOTE**: For now, only Syncthing sharing method is supported to synchronize
 projects files.
@@ -34,7 +34,7 @@ Clone this repo into your `$GOPATH/src/github.com/iotbzh` and use delivered Make
  make all
 ```
 
-## How to use xds-make
+## How to use xds-make or xds-exec
 
 You must have a running `xds-server` (locally or on the Cloud), see
 [README.txt of xds-server](https://github.com/iotbzh/xds-server/blob/master/README.md)
@@ -72,12 +72,24 @@ use the symbolic link `./bin/make -> ./bin/xds-make` and overwrite the native
 ```bash
 export PATH=<<directory_of_xds_make_repo>>/bin:$PATH
 
+export XDS_SERVER_URL=http://localhost:8010
 export XDS_PROJECT_ID=CKI7R47-UWNDQC3_myProject
-export XDS_SERVER_URL=http://localhost:8000
+export XDS_SDK_ID=poky-agl_aarch64_3.99.1+snapshot
 cd <<local_path_of_my_project>>
 make clean
 make all
 ```
+
+> **NOTE**: you can also define these environment variable within an env file
+and just set `--config` option. For example, the equivalence of above command is:
+>```
+> cat my-xds-config.env
+>   XDS_SERVER_URL=localhost:8010
+>   XDS_PROJECT_ID=CKI7R47-UWNDQC3_myProject
+>   XDS_SDK_ID=poky-agl_aarch64_3.99.1+snapshot
+>
+> xds-make --config my-xds-config.env -- clean all
+>```
 
 ## Usage
 
@@ -111,15 +123,16 @@ COMMANDS:
      help, h  Shows a list of commands or help for one command
 
 GLOBAL OPTIONS:
-   --id value         project ID you want to build (mandatory variable) [$XDS_PROJECT_ID]
-   --list, --ls       list existing projects
-   --log value        logging level (supported levels: panic, fatal, error, warn, info, debug) (default: "error") [$XDS_LOGLEVEL]
-   --rpath value      relative path into project [$XDS_RPATH]
-   --sdkid value      Cross Sdk ID to use to build project [$XDS_SDK_ID]
-   --timestamp, --ts  prefix output with timestamp [$XDS_TIMESTAMP]
-   --url value        remote XDS server url (default: "localhost:8000") [$XDS_SERVER_URL]
-   --help, -h         show help
-   --version, -v      print the version
+   --id value                project ID you want to build (mandatory variable) [$XDS_PROJECT_ID]
+   --config value, -c value  config file to source on startup [$XDS_CONFIG]
+   --list, --ls              list existing projects
+   --log value               logging level (supported levels: panic, fatal, error, warn, info, debug) (default: "error") [$XDS_LOGLEVEL]
+   --rpath value             relative path into project [$XDS_RPATH]
+   --sdkid value             Cross Sdk ID to use to build project [$XDS_SDK_ID]
+   --timestamp, --ts         prefix output with timestamp [$XDS_TIMESTAMP]
+   --url value               remote XDS server url (default: "localhost:8000") [$XDS_SERVER_URL]
+   --help, -h                show help
+   --version, -v             print the version
 
 COPYRIGHT:
    Apache-2.0

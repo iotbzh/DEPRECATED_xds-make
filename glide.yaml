@@ -11,3 +11,7 @@ import:
 - package: github.com/zhouhui8915/engine.io-go
 - package: github.com/zhouhui8915/go-socket.io-client
 - package: github.com/iotbzh/xds-server
+- package: github.com/joho/godotenv
+  version: ^1.1.0
+  subpackages:
+  - cmd/godotenv

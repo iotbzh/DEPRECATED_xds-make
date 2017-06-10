@@ -16,6 +16,7 @@ import (
 	"github.com/iotbzh/xds-server/lib/common"
 	"github.com/iotbzh/xds-server/lib/crosssdk"
 	"github.com/iotbzh/xds-server/lib/xdsconfig"
+	"github.com/joho/godotenv"
 	"github.com/zhouhui8915/go-socket.io-client"
 )
 
@@ -47,7 +48,7 @@ const (
 
 // main
 func main() {
-	var uri, prjID, rPath, logLevel, sdkid string
+	var uri, prjID, rPath, logLevel, sdkid, confFile string
 	var withTimestamp, listProject bool
 
 	// Allow to set app name from exec (useful for debugging)
@@ -81,6 +82,12 @@ func main() {
 			EnvVar:      "XDS_PROJECT_ID",
 			Usage:       "project ID you want to build (mandatory variable)",
 			Destination: &prjID,
+		},
+		cli.StringFlag{
+			Name:        "config, c",
+			EnvVar:      "XDS_CONFIG",
+			Usage:       "config file to source on startup",
+			Destination: &confFile,
 		},
 		cli.BoolFlag{
 			Name:        "list, ls",
@@ -153,6 +160,16 @@ func main() {
 	found := false
 	if exeName != AppNativeName {
 		for idx, a := range os.Args[1:] {
+			if a == "-c" || a == "--config" {
+				// Source config file when set
+				confFile = os.Args[idx+2]
+				if confFile != "" && exists(confFile) {
+					err := godotenv.Load(confFile)
+					if err != nil {
+						panic("Error loading config file " + confFile)
+					}
+				}
+			}
 			if a == "--" {
 				// Detect skip option (IOW '--') to split arguments
 				copy(args, os.Args[0:idx+1])
@@ -408,4 +425,16 @@ func main() {
 	}
 
 	app.Run(args)
+}
+
+// Exists returns whether the given file or directory exists or not
+func exists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
 }
