@@ -1,7 +1,7 @@
 # Makefile used to build xds-make and xds-exec commands
 
 # Application Version
-VERSION := 1.0.0
+VERSION := 1.0.1
 
 
 # Retrieve git tag/commit to set sub-version string
