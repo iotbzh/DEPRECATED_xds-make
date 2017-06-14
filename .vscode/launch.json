@@ -75,9 +75,9 @@
             "env": {
                 "GOPATH": "${workspaceRoot}/../../../..:${env:GOPATH}",
                 "XDS_APPNAME": "xds-exec",
-                "XDS_LOGLEVEL": "debug",
+                "XDS_LOGLEVEL": "debug"
             },
-            "args": ["-c", "xds-config-test.env", "--", "pwd; ls -l"],
+            "args": ["-c", "xds-config-sample.env", "--", "pwd; ls -l; env"],
             "showLog": false
         }
 

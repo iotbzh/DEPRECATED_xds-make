@@ -86,7 +86,7 @@ func main() {
 		cli.StringFlag{
 			Name:        "config, c",
 			EnvVar:      "XDS_CONFIG",
-			Usage:       "config file to source on startup",
+			Usage:       "env config file to source on startup",
 			Destination: &confFile,
 		},
 		cli.BoolFlag{
@@ -158,6 +158,7 @@ func main() {
 	// Split xds-xxx options from native command (eg. make) options
 	// only process args before skip arguments, IOW before '--'
 	found := false
+	envMap := make(map[string]string)
 	if exeName != AppNativeName {
 		for idx, a := range os.Args[1:] {
 			if a == "-c" || a == "--config" {
@@ -166,7 +167,11 @@ func main() {
 				if confFile != "" && exists(confFile) {
 					err := godotenv.Load(confFile)
 					if err != nil {
-						panic("Error loading config file " + confFile)
+						panic("Error loading env config file " + confFile)
+					}
+					envMap, err = godotenv.Read(confFile)
+					if err != nil {
+						panic("Error reading env config file " + confFile)
 					}
 				}
 			}
@@ -375,6 +380,12 @@ func main() {
 			}
 		}
 
+		// Build env
+		env := []string{}
+		for k, v := range envMap {
+			env = append(env, k+"="+v)
+		}
+
 		// Send build command
 		var body []byte
 		switch AppName {
@@ -383,7 +394,7 @@ func main() {
 				ID:         prjID,
 				SdkID:      sdkid,
 				Args:       argsCommand,
-				Env:        []string{},
+				Env:        env,
 				RPath:      rPath,
 				CmdTimeout: 60,
 			}
@@ -395,7 +406,7 @@ func main() {
 				SdkID:      sdkid,
 				Cmd:        strings.Trim(strings.Join(argsCommand, " "), " "),
 				Args:       []string{},
-				Env:        []string{},
+				Env:        env,
 				RPath:      rPath,
 				CmdTimeout: 60,
 			}
