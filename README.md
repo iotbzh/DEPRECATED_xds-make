@@ -1,10 +1,10 @@
-xds-make & xds-exec: wrapper on make and exec for XDS
-=====================================================
+xds-make : wrapper on make for XDS  (OBSOLETE)
+================================================
+
+**OBSOLETE : use `xds-exec` repo [https://github.com/iotbzh/xds-exec](https://github.com/iotbzh/xds-exec) instead.**
+
 
 `xds-make` is a wrapper on make command for X(cross) Development System.
-
-As well as `xds-exec` is a wrapper on exec command and can be use to execute any
-command on a remote `xds-server`.
 
 This tool can be used in lieu of "standard" `make` command to trigger build of
 your application by a remote `xds-server`.
@@ -34,7 +34,7 @@ Clone this repo into your `$GOPATH/src/github.com/iotbzh` and use delivered Make
  make all
 ```
 
-## How to use xds-make or xds-exec
+## How to use xds-make
 
 You must have a running `xds-server` (locally or on the Cloud), see
 [README.txt of xds-server](https://github.com/iotbzh/xds-server/blob/master/README.md)

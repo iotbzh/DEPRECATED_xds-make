@@ -1,4 +1,4 @@
-# Makefile used to build xds-make and xds-exec commands
+# Makefile used to build xds-make command
 
 # Application Version
 VERSION := 1.0.1
@@ -43,16 +43,11 @@ VERBOSE_2 := -v -x
 REPOPATH=github.com/iotbzh/xds-make
 TARGET := xds-make
 
-all: xds-make xds-exec
+all: xds-make
 
 build: xds-make
 
 xds-make: vendor
-	@echo "### Build $@ (version $(VERSION), subversion $(SUB_VERSION))";
-	@cd $(ROOT_SRCDIR); $(BUILD_ENV_FLAGS) go build $(VERBOSE_$(V)) -i -o $(BINDIR)/$@$(EXT) -ldflags "-X main.AppName=$@ -X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" .
-	@([ "$(HOST_GOOS)" = "linux" ] && { cd $(BINDIR) && ln -sf $@ $(subst xds-,,$@); } || { true; } )
-
-xds-exec: vendor
 	@echo "### Build $@ (version $(VERSION), subversion $(SUB_VERSION))";
 	@cd $(ROOT_SRCDIR); $(BUILD_ENV_FLAGS) go build $(VERBOSE_$(V)) -i -o $(BINDIR)/$@$(EXT) -ldflags "-X main.AppName=$@ -X main.AppVersion=$(VERSION) -X main.AppSubVersion=$(SUB_VERSION)" .
 	@([ "$(HOST_GOOS)" = "linux" ] && { cd $(BINDIR) && ln -sf $@ $(subst xds-,,$@); } || { true; } )
@@ -77,9 +72,6 @@ package: clean all
 	@mkdir -p $(PACKAGE_DIR)/xds-make
 	cp -a $(BINDIR)/*make$(EXT) $(PACKAGE_DIR)/xds-make
 	cd $(PACKAGE_DIR) && zip  --symlinks -r $(ROOT_SRCDIR)/xds-make_$(ARCH)-v$(VERSION)_$(SUB_VERSION).zip ./xds-make
-	@mkdir -p $(PACKAGE_DIR)/xds-exec
-	cp -a $(BINDIR)/*exec$(EXT) $(PACKAGE_DIR)/xds-exec
-	cd $(PACKAGE_DIR) && zip  --symlinks -r $(ROOT_SRCDIR)/xds-exec_$(ARCH)-v$(VERSION)_$(SUB_VERSION).zip ./xds-exec
 
 .PHONY: package-all
 package-all:
